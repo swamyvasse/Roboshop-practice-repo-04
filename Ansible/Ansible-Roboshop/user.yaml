@@ -1,5 +1,5 @@
-- name: install catalogue component
-  hosts: catalogue
+- name: install user component
+  hosts: user
   become: 'yes'
   tasks:
     - name: Setup NPM source
@@ -25,10 +25,10 @@
       ansible.builtin.stat:
         path: /app
         register: directory
-    
-    - name: print directory stats 
-      ansible.builtin.debug: 
-        msg: "output: {{directory}}"
+
+    - name: print directory stats
+      ansible.builtin.debug:
+        msg: 'output: {{directory}}'
 
     - when: directory stat.exists == False
       name: create /app directory
@@ -36,14 +36,14 @@
         path: /app
         state: directory
 
-    - name: download catalogue artifact
+    - name: download user artifact
       ansible.builtin.get_url:
-        url: https://roboshop-builds.s3.amazonaws.com/catalogue.zip
+        url: https://roboshop-builds.s3.amazonaws.com/user.zip
         dest: /tmp
 
-    - name: extract catalogue artifact
+    - name: extract user artifact
       ansible.builtin.unarchive:
-        src: /tmp/catalogue.zip
+        src: /tmp/user.zip
         dest: /app
         remote_src: 'yes'
 
@@ -52,14 +52,20 @@
       args:
         chdir: /app
 
-    - name: copy file catalogue.service
+    - name: copy file user.service
       ansible.builtin.copy:
-        src: catalogue.service
-        dest: /etc/systemd/system/catalogue.service
-
+        src: user.service
+        dest: /etc/systemd/system/user.service
+        
     - name: daemon-reload
       ansible.builtin.systemd:
         daemon-reload: true
+
+    - name: start user
+      ansible.builtin.service:
+        name: user
+        state: started
+        enabled: 'yes'
 
     - name: copy file mongo.repo to yum.repos.d
       ansible.builtin.copy:
@@ -70,12 +76,6 @@
       ansible.builtin.yum:
         name: mongodb-org-shell
         state: installed
-
-    - name: load catalogue data
-      ansible.builtin.command: mongo --host MONGODB-SERVER-IPADDRESS </app/schema/catalogue.js
-    
-    - name: start catalogue
-      ansible.builtin.service:
-        name: catalogue
-        state: started
-        enabled: 'yes'
+        
+    - name: load user data
+      ansible.builtin.command: mongo --host MONGODB-SERVER-IPADDRESS < /app/schema/user.js
